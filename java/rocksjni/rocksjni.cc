@@ -21,6 +21,7 @@
 #include "rocksdb/db.h"
 #include "rocksdb/options.h"
 #include "rocksdb/types.h"
+#include "rocksjni/init.h"
 #include "rocksjni/portal.h"
 
 #ifdef min
@@ -1516,6 +1517,11 @@ void Java_org_rocksdb_RocksDB_disposeInternal(JNIEnv* /*env*/,
   auto* db = reinterpret_cast<rocksdb::DB*>(jhandle);
   assert(db != nullptr);
   delete db;
+}
+
+//context lives until vm lives because many db instances can be present
+void Java_org_rocksdb_RocksDB_destroyJNIContext(JNIEnv* /*env*/, jclass /*clazz*/) {
+     rocksdb::destroyJNIContext();
 }
 
 jlong rocksdb_iterator_helper(rocksdb::DB* db,

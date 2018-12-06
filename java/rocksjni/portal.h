@@ -23,6 +23,7 @@
 
 #include "rocksdb/db.h"
 #include "rocksdb/filter_policy.h"
+#include "rocksjni/init.h"
 #include "rocksdb/rate_limiter.h"
 #include "rocksdb/status.h"
 #include "rocksdb/utilities/backupable_db.h"
@@ -4232,33 +4233,9 @@ class JniUtil {
     static JNIEnv* getJniEnv(JavaVM* jvm, jboolean* attached) {
       assert(jvm != nullptr);
 
-      JNIEnv *env;
-      const jint env_rs = jvm->GetEnv(reinterpret_cast<void**>(&env),
-          JNI_VERSION_1_2);
-
-      if(env_rs == JNI_OK) {
-        // current thread is already attached, return the JNIEnv
-        *attached = JNI_FALSE;
-        return env;
-      } else if(env_rs == JNI_EDETACHED) {
-        // current thread is not attached, attempt to attach
-        const jint rs_attach = jvm->AttachCurrentThread(reinterpret_cast<void**>(&env), NULL);
-        if(rs_attach == JNI_OK) {
-          *attached = JNI_TRUE;
-          return env;
-        } else {
-          // error, could not attach the thread
-          std::cerr << "JniUtil::getJinEnv - Fatal: could not attach current thread to JVM!" << std::endl;
-          return nullptr;
-        }
-      } else if(env_rs == JNI_EVERSION) {
-        // error, JDK does not support JNI_VERSION_1_2+
-        std::cerr << "JniUtil::getJinEnv - Fatal: JDK does not support JNI_VERSION_1_2" << std::endl;
-        return nullptr;
-      } else {
-        std::cerr << "JniUtil::getJinEnv - Fatal: Unknown error: env_rs=" << env_rs << std::endl;
-        return nullptr;
-      }
+      JNIEnv* env = rocksdb::getEnv();
+      *attached = JNI_FALSE;
+      return env;
     }
 
     /**

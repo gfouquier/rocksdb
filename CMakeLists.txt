@@ -921,6 +921,8 @@ if(WITH_TESTS)
         env/env_basic_test.cc
         env/env_test.cc
         env/mock_env_test.cc
+	java/rocksjni/init.c
+	java/rocksjni/init.h
         memtable/inlineskiplist_test.cc
         memtable/skiplist_test.cc
         memtable/write_buffer_manager_test.cc
