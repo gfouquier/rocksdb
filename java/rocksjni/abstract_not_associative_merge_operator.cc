@@ -282,41 +282,36 @@ namespace rocksdb {
           env->ThrowNew(cls, "unable to find AbstractNotAssociativeMergeOperator");
         }
 
-        JNIAbstractNotAssociativeMergeOperator::merge = env->GetMethodID(cls, "partialMerge", "([B[B[B)[B");
-        JNIAbstractNotAssociativeMergeOperator::multi_merge = env->GetMethodID(cls, "partialMultiMerge", "([B[B[[B)[B");
+        JNIAbstractNotAssociativeMergeOperator::full_merge = env->GetMethodID(cls, "fullMerge", "([B[B[[BLorg/rocksdb/ReturnType;)[B");
+        JNIAbstractNotAssociativeMergeOperator::multi_merge = env->GetMethodID(cls, "partialMultiMerge", "([B[[BLorg/rocksdb/ReturnType;)[B");
+        JNIAbstractNotAssociativeMergeOperator::merge = env->GetMethodID(cls, "partialMerge", "([B[B[BLorg/rocksdb/ReturnType;)[B");
         JNIAbstractNotAssociativeMergeOperator::should_merge = env->GetMethodID(cls, "shouldMerge", "([[B)Z");
-        JNIAbstractNotAssociativeMergeOperator::full_merge = env->GetMethodID(cls, "fullMerge", "([B[B[[B)[B");
 
-        if (JNIAbstractNotAssociativeMergeOperator::merge == 0) {
-          cls = env->FindClass("java/lang/Error");
-          env->ThrowNew(cls, "unable to find method partialMerge");
-        }
+        if (JNIAbstractNotAssociativeMergeOperator::full_merge == 0)
+            rocksdb::throwJavaLangError(env, "unable to find method fullMerge");
+        std::cout << "ID for full_merge is " <<  JNIAbstractNotAssociativeMergeOperator::full_merge << std::endl;
+        if (JNIAbstractNotAssociativeMergeOperator::multi_merge == 0)
+            rocksdb::throwJavaLangError(env, "unable to find method partialMultiMerge");
 
-        if (JNIAbstractNotAssociativeMergeOperator::multi_merge == 0) {
-          cls = env->FindClass("java/lang/Error");
-          env->ThrowNew(cls, "unable to find method partialMultiMerge");
-        }
-        if (JNIAbstractNotAssociativeMergeOperator::should_merge == 0) {
-          cls = env->FindClass("java/lang/Error");
-          env->ThrowNew(cls, "unable to find method shouldMerge");
-        }
-        if (JNIAbstractNotAssociativeMergeOperator::full_merge == 0) {
-          cls = env->FindClass("java/lang/Error");
-          env->ThrowNew(cls, "unable to find method fullMerge");
-        }
+        if (JNIAbstractNotAssociativeMergeOperator::merge == 0)
+            rocksdb::throwJavaLangError(env,"unable to find method partialMerge");
+
+        if (JNIAbstractNotAssociativeMergeOperator::should_merge == 0)
+            rocksdb::throwJavaLangError(env, "unable to find method shouldMerge");
+
         jclass a = env->FindClass("[B");
         if (a == 0) {
           cls = env->FindClass("java/lang/Error");
           env->ThrowNew(cls, "unable to find object []");
         } else
-					JNIAbstractNotAssociativeMergeOperator::bytearrayClass = reinterpret_cast<jclass>(env->NewGlobalRef(a));
-      }
+            JNIAbstractNotAssociativeMergeOperator::bytearrayClass = reinterpret_cast<jclass>(env->NewGlobalRef(a));
+        }
   }
 }
 
 initialize {
-	rocksdb::setLoader(&rocksdb::JNIAbstractNotAssociativeMergeOperator::staticInit);
-	rocksdb::setUnloader(&rocksdb::JNIAbstractNotAssociativeMergeOperator::staticDestroy);
+    rocksdb::JNIInitializer::getInstance()->setLoader(&rocksdb::JNIAbstractNotAssociativeMergeOperator::staticInit);
+    rocksdb::JNIInitializer::getInstance()->setUnloader(&rocksdb::JNIAbstractNotAssociativeMergeOperator::staticDestroy);
 }
 
 void Java_org_rocksdb_AbstractNotAssociativeMergeOperator_initOperator(

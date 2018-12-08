@@ -9,6 +9,8 @@
 
 #include <jni.h>
 #include <pthread.h>
+#include <vector>
+
 #ifndef UNIQUE_IDENTIFIER
 #define CONCATENATE(s1, s2) s1##s2
 #define EXPAND_THEN_CONCATENATE(s1, s2) CONCATENATE(s1, s2)
@@ -42,11 +44,32 @@ static void function_name()
 namespace rocksdb {
 	extern JavaVM *JVM;
 	extern jint jvmVersion;
-	extern JNIEnv *getEnv();
 
-	extern void  setLoader(void (*) (JNIEnv *));
-	extern void  setUnloader(void (*) (JNIEnv *));
-	extern void detachCurrentThread();
-	extern  void  destroyJNIContext();
+    typedef void (*callback)(JNIEnv *);
+
+    class JNIInitializer {
+    public:
+        std::vector <callback> *loaders;
+        std::vector <callback> *unloaders;
+    private:
+        JNIInitializer();
+        static JNIInitializer *instance;
+    public:
+        static JNIInitializer* getInstance() {
+            if (instance == nullptr)
+                instance = new JNIInitializer();
+            return instance;
+        }
+
+        void setLoader(callback func);
+        void setUnloader(callback func);
+    };
+    JNIEnv *getEnv();
+
+    void throwJavaLangError(JNIEnv * env, const char * message);
+    void catchAndLog(JNIEnv *env);
+
+    void detachCurrentThread();
+	void destroyJNIContext();
 }
 #endif //ROCKSDB_INIT_H
