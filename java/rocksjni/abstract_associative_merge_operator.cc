@@ -34,7 +34,6 @@ namespace rocksdb {
                                const Slice &value,
                                std::string *new_value,
                                Logger */*logger*/) const override {
-                printf("Merge get env\n");
                 JNIEnv *env = rocksdb::getEnv();
                 if (env == NULL)
                     return false;
@@ -44,13 +43,11 @@ namespace rocksdb {
                 jbyte *buf1;
                 jbyte *buf2;
 
-                printf("Merge 1\n");
                 size_t s0 = key.size() * sizeof(char);
                 buf0 = (jbyte *) key.data();
                 jb0 = env->NewByteArray(s0);
                 env->SetByteArrayRegion(jb0, 0, s0, buf0);
 
-                printf("Merge 2\n");
                 if (existing_value != NULL) {
                     size_t s1 = existing_value->size() * sizeof(char);
                     buf1 = (jbyte *) existing_value->data();
@@ -61,42 +58,26 @@ namespace rocksdb {
                     jb1 = NULL;
                 }
 
-                printf("Merge 3\n");
                 size_t s2 = value.size() * sizeof(char);
                 buf2 = (jbyte *) value.data();
-                printf("Merge 3,4\n");
                 jb2 = env->NewByteArray(s2);
-                printf("Merge 3,5\n");
                 env->SetByteArrayRegion(jb2, 0, s2, buf2);
-                printf("Merge 3,6\n");
 
                 jobject rtobject = env->NewObject(rtClass, rtConstructor);
-                printf("Merge 3,7\n");
                 jbyteArray jresult = (jbyteArray) env->CallObjectMethod(obj,
                                                                         rocksdb::JNIAbstractAssociativeMergeOperator::method,
                                                                         jb0, jb1, jb2, rtobject);
-                printf("Merge 3,8\n");
                 jthrowable ex = env->ExceptionOccurred();
                 rocksdb::catchAndLog(env);
-                printf("Merge 4\n");
-                //env->ReleaseByteArrayElements(jb0, buf0, JNI_COMMIT);
                 env->DeleteLocalRef(jb0);
                 rocksdb::catchAndLog(env);
-                // env->DeleteLocalRef(jb0);
-                printf("Merge 4.1\n");
                 if (jb1 != NULL)
-                    //env->ReleaseByteArrayElements(jb1, buf1, JNI_COMMIT);
                     env->DeleteLocalRef(jb1);
-                rocksdb::catchAndLog(env);
-                printf("Merge 4.2\n");
-                //env->ReleaseByteArrayElements(jb2, buf2, JNI_COMMIT);
                 env->DeleteLocalRef(jb2);
                 rocksdb::catchAndLog(env);
-                printf("Merge 4.3\n");
                 jboolean rtr = env->GetBooleanField(rtobject, rtField);
                 env->DeleteLocalRef(rtobject);
 
-                printf("Merge 5\n");
                 if (ex) {
                     if (jresult != nullptr) {
                         char *result = (char *) env->GetByteArrayElements(jresult, 0);

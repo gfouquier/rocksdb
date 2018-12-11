@@ -169,6 +169,9 @@ public class RocksJunitRunner {
     } catch (final ClassNotFoundException e) {
       e.printStackTrace();
       System.exit(-2);
+    } finally {
+      System.exit(0);
     }
+
   }
 }

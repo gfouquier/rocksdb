@@ -140,7 +140,7 @@ public class AbstractMergeOperatorTest {
 		}
 	}
 
-	//@Test
+	@Test
 	public void mergeWithAbstractNotAssociativeOperator() throws RocksDBException, NoSuchMethodException, InterruptedException {
 		/*Thread t = new Thread(new Runnable() {
 		  @Override
