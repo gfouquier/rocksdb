@@ -36,8 +36,8 @@ CompactionFilterFactoryJniCallback::CompactionFilterFactoryJniCallback(
     return;
   }
 
-  m_jcreate_compaction_filter_methodid =
-      AbstractCompactionFilterFactoryJni::getCreateCompactionFilterMethodId(env);
+  m_jcreate_associative_merge_operator_methodid =
+      AbstractCompactionFilterFactoryJni::getCreateAssociativeMergeOperatorMethodId(env);
   if(m_jcreate_compaction_filter_methodid == nullptr) {
     // exception thrown: NoSuchMethodException or OutOfMemoryError
     return;

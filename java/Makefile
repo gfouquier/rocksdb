@@ -1,5 +1,5 @@
 NATIVE_JAVA_CLASSES = org.rocksdb.AbstractCompactionFilter\
-	org.rocksdb.AbstractAssociativeMergeOperator\
+	org.rocksdb.AbstractAssociativeMergeOperatorFactory\
 	org.rocksdb.AbstractCompactionFilterFactory\
 	org.rocksdb.AbstractNotAssociativeMergeOperator\
 	org.rocksdb.AbstractSlice\
@@ -74,7 +74,6 @@ NATIVE_JAVA_CLASSES = org.rocksdb.AbstractCompactionFilter\
 	org.rocksdb.WBWIRocksIterator
 
 NATIVE_JAVA_TEST_CLASSES = org.rocksdb.RocksDBExceptionTest\
-		org.rocksdb.AbstractAssociativeMergeOperator\
     org.rocksdb.NativeComparatorWrapperTest.NativeStringComparatorWrapper\
     org.rocksdb.WriteBatchTest\
     org.rocksdb.WriteBatchTestInternalHelper
@@ -90,7 +89,7 @@ ifeq ($(PLATFORM), OS_MACOSX)
 ROCKSDB_JAR = rocksdbjni-$(ROCKSDB_MAJOR).$(ROCKSDB_MINOR).$(ROCKSDB_PATCH)-osx.jar
 endif
 
-JAVA_TESTS = org.rocksdb.AbstractMergeOperatorTest\
+JAVA_TESTS = org.rocksdb.AssociativeMergeOperatorTest\
 	org.rocksdb.BackupableDBOptionsTest\
 	org.rocksdb.BackupEngineTest\
 	org.rocksdb.BlockBasedTableConfigTest\
@@ -99,7 +98,7 @@ JAVA_TESTS = org.rocksdb.AbstractMergeOperatorTest\
 	org.rocksdb.ClockCacheTest\
 	org.rocksdb.ColumnFamilyOptionsTest\
 	org.rocksdb.ColumnFamilyTest\
-  org.rocksdb.CompactionFilterFactoryTest\
+    org.rocksdb.CompactionFilterFactoryTest\
 	org.rocksdb.CompactionOptionsFIFOTest\
 	org.rocksdb.CompactionOptionsUniversalTest\
 	org.rocksdb.CompactionPriorityTest\

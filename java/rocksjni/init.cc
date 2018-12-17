@@ -48,13 +48,13 @@ namespace rocksdb {
      */
     int dbInstances = 0;
 
-    pthread_key_t CURRENT_ATTACHED_ENV;
+//    pthread_key_t CURRENT_ATTACHED_ENV;
 
-    struct JNI_CONTEXT {
+/*    struct JNI_CONTEXT {
         JNIEnv *env;
         bool attached;
     };
-
+*/
     /**
      * Helper for throwing a java.lang.Error exception
      * @param env
@@ -74,17 +74,16 @@ namespace rocksdb {
             env->ExceptionClear();
         }
     }
-
+/*
     void _detachCurrentThread(void *addr) {
-        std::cout<< "detaching threadid"<< pthread_self()<<" "<<addr <<" "<<static_cast<JNI_CONTEXT*>(addr)<<"\n";
-        JNI_CONTEXT *context;
-        context = static_cast<JNI_CONTEXT *>(addr);
-        std::cout<< "context="<< context<<"\n";
+        std::cout << "detaching threadid" << pthread_self() << " " << addr << " " << static_cast<JNI_CONTEXT*>(addr) << std::endl;
+        JNI_CONTEXT *context = static_cast<JNI_CONTEXT *>(addr);
+        std::cout << "context=" << context << std::endl;
 
         if (context != nullptr) {
-            std::cout<< "detaching 1"<<context<<"\n";
+            std::cout << "detaching 1" << context << std::endl;
             if (context->attached) {
-                std::cout<< "deta execution"<<rocksdb::JVM<<"\n";
+                std::cout << "deta execution" << rocksdb::JVM << std::endl;
                 assert(rocksdb::JVM != nullptr);
                 rocksdb::JVM->DetachCurrentThread();
             }
@@ -99,7 +98,7 @@ namespace rocksdb {
     }
 
     void destroyJNIContext() {
-        std::cout << "destroy jni context\n";
+        std::cout << "destroy jni context" << std::endl;
         JNIEnv *env = rocksdb::getEnv();
         rocksdb::callback func;
         for (unsigned i = rocksdb::JNIInitializer::getInstance()->unloaders->size(); i-- > 0;) {
@@ -112,15 +111,10 @@ namespace rocksdb {
 
     JNIEnv *getEnv() {
         JNI_CONTEXT *context = (JNI_CONTEXT *) pthread_getspecific(rocksdb::CURRENT_ATTACHED_ENV);
-        std::cout << "get env: threadid " << pthread_self() << "\n";
+        //std::cout << "get env: threadid " << pthread_self() << std::endl;
         if (context == NULL) {
             JNIEnv *env;
             int getEnvStat = rocksdb::JVM->GetEnv((void **) &env, rocksdb::jvmVersion);
-            if (env == nullptr) {
-                std::cerr << "JVM->GetEnv returned a NULL env" << std::endl;
-                return nullptr;
-            }
-            rocksdb::catchAndLog(env);
             if (getEnvStat == JNI_EDETACHED) {
                 // expensive operation : do not detach for every invocation
                 if (rocksdb::JVM->AttachCurrentThread((void **) &env, NULL) != JNI_OK) {
@@ -129,7 +123,7 @@ namespace rocksdb {
                 } else {
                     rocksdb::catchAndLog(env);
                     context = new JNI_CONTEXT();
-                    std::cout << "attached" << context << "\n";
+                    std::cout << "attached" << context << std::endl;
                     context->attached = true;
                     context->env = env;
                     pthread_setspecific(rocksdb::CURRENT_ATTACHED_ENV, context);
@@ -142,20 +136,20 @@ namespace rocksdb {
                 return NULL;
             } else {//already attached
                 rocksdb::catchAndLog(env);
-                std::cout << " already attached\n";
+                std::cout << " already attached" << std::endl;
                 context = new JNI_CONTEXT();
                 context->attached = false;
                 context->env = env;
                 pthread_setspecific(rocksdb::CURRENT_ATTACHED_ENV, context);
                 //   atexit([] { detach_current_thread(NULL); });
                 // std::cout << "4b "<<context<<"\n";
-                std::cout << "threadid" << pthread_self() << "\n";
+                std::cout << "threadid" << pthread_self() << std::endl;
                 return env;
             }
         } else {
             return context->env;
         }
-    }
+    }*/
 }
 
 JNIEXPORT void JNICALL
@@ -164,28 +158,31 @@ Java_org_rocksdb_util_Environment_detachCurrentThreadIfPossible(JNIEnv
 rocksdb::detachCurrentThread();
 }
 
-jint JNI_OnLoad(JavaVM *vm, void * /*reserved*/) {
-    rocksdb::JVM = vm;
-    pthread_key_create(&rocksdb::CURRENT_ATTACHED_ENV, rocksdb::_detachCurrentThread);
-    JNIEnv * env = rocksdb::getEnv();
-    std::cout << "########### nb loaders: " << rocksdb::JNIInitializer::getInstance()->loaders->size() << std::endl;
-    std::cout << "########### nb unloaders: " << rocksdb::JNIInitializer::getInstance()->unloaders->size() << std::endl;
-    for (auto const &func : *rocksdb::JNIInitializer::getInstance()->loaders) {
-        (*func)(env);
-        rocksdb::catchAndLog(env);
-    }
-    std::cout << "########### Clearing and detaching " << std::endl;
-    rocksdb::JNIInitializer::getInstance()->loaders->clear();
-    rocksdb::detachCurrentThread();
-    return rocksdb::jvmVersion;
-}
+//jint JNI_OnLoad(JavaVM *vm, void * /*reserved*/) {
+//    rocksdb::JVM = vm;
+//    //pthread_key_create(&rocksdb::CURRENT_ATTACHED_ENV, rocksdb::_detachCurrentThread);
+//    //JNIEnv * env = rocksdb::getEnv();
+//    jboolean attached_thread = JNI_FALSE;
+//    JNIEnv* env = getJniEnv(&attached_thread);
+//    std::cout << "########### nb loaders: " << rocksdb::JNIInitializer::getInstance()->loaders->size() << std::endl;
+//    std::cout << "########### nb unloaders: " << rocksdb::JNIInitializer::getInstance()->unloaders->size() << std::endl;
+//    for (auto const &func : *rocksdb::JNIInitializer::getInstance()->loaders) {
+//        (*func)(env);
+//        rocksdb::catchAndLog(env);
+//    }
+//    std::cout << "########### Clearing and detaching " << std::endl;
+//    rocksdb::JNIInitializer::getInstance()->loaders->clear();
+//    //rocksdb::detachCurrentThread();
+//    releaseJniEnv(attached_thread);
+//    return rocksdb::jvmVersion;
+//}
 
 /*
  * fixed unload bug: this api is not called
  *
  * */
 
-void JNI_OnUnload(JavaVM * /*vm*/, void * /*reserved*/) {
-    rocksdb::JVM = nullptr;
-}
+//void JNI_OnUnload(JavaVM * /*vm*/, void * /*reserved*/) {
+//    rocksdb::JVM = nullptr;
+//}
 

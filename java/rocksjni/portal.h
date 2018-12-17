@@ -35,6 +35,7 @@
 #include "rocksjni/loggerjnicallback.h"
 #include "rocksjni/transaction_notifier_jnicallback.h"
 #include "rocksjni/writebatchhandlerjnicallback.h"
+#include "rocksjni/associative_merge_operator_jnicallback.h"
 
 // Remove macro on windows
 #ifdef DELETE
@@ -941,11 +942,10 @@ class IllegalArgumentExceptionJni :
   }
 };
 
-
 // The portal class for org.rocksdb.Options
 class OptionsJni : public RocksDBNativeClass<
-    rocksdb::Options*, OptionsJni> {
- public:
+      rocksdb::Options*, OptionsJni> {
+public:
   /**
    * Get the Java Class org.rocksdb.Options
    *
@@ -959,6 +959,7 @@ class OptionsJni : public RocksDBNativeClass<
     return RocksDBNativeClass::getJClass(env, "org/rocksdb/Options");
   }
 };
+
 
 // The portal class for org.rocksdb.DBOptions
 class DBOptionsJni : public RocksDBNativeClass<
@@ -4230,13 +4231,45 @@ class JniUtil {
      * @return A pointer to the JNIEnv or nullptr if a fatal error
      *     occurs and the JNIEnv cannot be retrieved
      */
-    static JNIEnv* getJniEnv(JavaVM* jvm, jboolean* attached) {
-      assert(jvm != nullptr);
+    //static JNIEnv* getJniEnv(JavaVM* /*jvm*/, jboolean* attached) {
+      //assert(jvm != nullptr);
 
-      JNIEnv* env = rocksdb::getEnv();
+    //  JNIEnv* env = rocksdb::getEnv();
+    //  *attached = JNI_FALSE;
+    //  return env;
+    //}
+
+  static JNIEnv* getJniEnv(JavaVM* jvm, jboolean* attached) {
+    assert(jvm != nullptr);
+
+    JNIEnv *env;
+    const jint env_rs = jvm->GetEnv(reinterpret_cast<void**>(&env),
+                                    JNI_VERSION_1_2);
+
+    if(env_rs == JNI_OK) {
+      // current thread is already attached, return the JNIEnv
       *attached = JNI_FALSE;
       return env;
+    } else if(env_rs == JNI_EDETACHED) {
+      // current thread is not attached, attempt to attach
+      const jint rs_attach = jvm->AttachCurrentThread(reinterpret_cast<void**>(&env), NULL);
+      if(rs_attach == JNI_OK) {
+        *attached = JNI_TRUE;
+        return env;
+      } else {
+        // error, could not attach the thread
+        std::cerr << "JniUtil::getJinEnv - Fatal: could not attach current thread to JVM!" << std::endl;
+        return nullptr;
+      }
+    } else if(env_rs == JNI_EVERSION) {
+      // error, JDK does not support JNI_VERSION_1_2+
+      std::cerr << "JniUtil::getJinEnv - Fatal: JDK does not support JNI_VERSION_1_2" << std::endl;
+      return nullptr;
+    } else {
+      std::cerr << "JniUtil::getJinEnv - Fatal: Unknown error: env_rs=" << env_rs << std::endl;
+      return nullptr;
     }
+  }
 
     /**
      * Counterpart to {@link JniUtil::getJniEnv(JavaVM*, jboolean*)}
@@ -5005,5 +5038,131 @@ class LongJni : public JavaClass {
     return jlong_obj;
   }
 };
+
+// The portal class for org.rocksdb.AbstractAssociativeMergeOperatorFactory
+class AbstractAssociativeMergeOperatorFactoryJni : public JavaClass {
+
+  static jclass rtClass;
+
+public:
+//  static jmethodID method;
+
+  /**
+   * Get the Java Class org.rocksdb.AbstractAssociativeMergeOperator
+   *
+   * @param env A pointer to the Java environment
+   *
+   * @return The Java Class or nullptr if one of the
+   *     ClassFormatError, ClassCircularityError, NoClassDefFoundError,
+   *     OutOfMemoryError or ExceptionInInitializerError exceptions is thrown
+   */
+  static jclass getJClass(JNIEnv* env) {
+    static jclass aamoClass = JavaClass::getJClass(env, "org/rocksdb/AbstractAssociativeMergeOperator");
+    return aamoClass;
+  }
+
+  static jmethodID getNameMethodId(JNIEnv* env) {
+    jclass jclazz = getJClass(env);
+    if(jclazz == nullptr) {
+      // exception occurred accessing class
+      return nullptr;
+    }
+
+    static jmethodID mid = env->GetMethodID(
+        jclazz, "name", "()Ljava/lang/String;");
+    assert(mid != nullptr);
+    return mid;
+  }
+
+  static jmethodID getCreateAssociativeMergeOperatorMethodId(JNIEnv* env) {
+    jclass jclazz = getJClass(env);
+    if(jclazz == nullptr) {
+      // exception occurred accessing class
+      return nullptr;
+    }
+
+    static jmethodID mid = env->GetMethodID(jclazz,
+                                            "createAssociativeMergeOperator",
+                                            "(ZZ)J");
+    assert(mid != nullptr);
+    return mid;
+  }
+
+  static jclass getReturnTypeClass(JNIEnv* env) {
+    static jclass rtClass = reinterpret_cast<jclass>(env->NewGlobalRef(JavaClass::getJClass(env, "org/rocksdb/ReturnType")));
+    return rtClass;
+  }
+
+  static jmethodID getMergeMethodId(JNIEnv* env) {
+    static jmethodID method = env->GetMethodID(getJClass(env), "merge", "([B[B[BLorg/rocksdb/ReturnType;)[B");
+    return method;
+  }
+
+  static jobject getReturnTypeObject(JNIEnv* env) {
+    static jmethodID rtConstructor = env->GetMethodID(getReturnTypeClass(env), "<init>", "()V");
+    return env->NewObject(getReturnTypeClass(env), rtConstructor);
+  }
+
+  static jboolean getReturnTypeField(JNIEnv* env, jobject rtobject) {
+    static jfieldID rtField = env->GetFieldID(getReturnTypeClass(env), "isArgumentReference", "Z");
+    return env->GetBooleanField(rtobject, rtField);
+  }
+
+  static jbyteArray callObjectMethod(JNIEnv* env, jobject obj, jbyteArray jb0, jbyteArray jb1, jbyteArray jb2, jobject rtobject) {
+    static jmethodID method = getMergeMethodId(env);
+    return (jbyteArray)env->CallObjectMethod(obj, method, jb0, jb1, jb2, rtobject);
+  }
+
+  /**
+ * Create a new Java org.rocksdb.AbstractAssociativeMergeOperator object.
+ *
+ * @param env A pointer to the Java environment
+ *
+ * @return A reference to a org.rocksdb.AbstractAssociativeMergeOperator object, or
+ * nullptr if an an exception occurs
+ */
+  /*static void construct(JNIEnv* env) {
+    jclass jclazz = getJClass(env);
+    if (jclazz == nullptr) {
+      rocksdb::throwJavaLangError(env, "unable to find AbstractAssociativeMergeOperator");
+    }
+
+    jmethodID method = getMergeMethodId(env);
+    if (method == nullptr) {
+      rocksdb::throwJavaLangError(env, "unable to find method merge");
+    }
+
+    jclass returnTypeClass = getReturnTypeClass(env);
+    if (returnTypeClass == nullptr) {
+      rocksdb::throwJavaLangError(env, "unable to find object org.rocksdb.ReturnType");
+    }
+
+    rocksdb::catchAndLog(env);
+  }*/
+
+  static void destroy(JNIEnv *env) {
+    env->DeleteGlobalRef(reinterpret_cast<jobject>(getReturnTypeClass(env)));
+  }
+};
+
+// The portal class for org.rocksdb.AbstractNotAssociativeMergeOperator
+//class AbstractNotAssociativeMergeOperatorJni : public RocksDBNativeClass<
+//    JNIAbstractNotAssociativeMergeOperator::JNIMergeOperator*, AbstractNotAssociativeMergeOperatorJni> {
+//public:
+  /**
+   * Get the Java Class org.rocksdb.AbstractNotAssociativeMergeOperator
+   *
+   * @param env A pointer to the Java environment
+   *
+   * @return The Java Class or nullptr if one of the
+   *     ClassFormatError, ClassCircularityError, NoClassDefFoundError,
+   *     OutOfMemoryError or ExceptionInInitializerError exceptions is thrown
+   */
+//  static jclass getJClass(JNIEnv* env) {
+//    return RocksDBNativeClass::getJClass(env, "org/rocksdb/AbstractNotAssociativeMergeOperator");
+//  }
+//};
+
+
 }  // namespace rocksdb
 #endif  // JAVA_ROCKSJNI_PORTAL_H_

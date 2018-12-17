@@ -16,8 +16,7 @@ package org.rocksdb;
  * The use of {@code RocksObject} should always be preferred over
  * {@link RocksCallbackObject} if callbacks are not required.
  */
-public abstract class RocksCallbackObject extends
-    AbstractImmutableNativeReference {
+public abstract class RocksCallbackObject extends AbstractImmutableNativeReference {
 
   protected final long nativeHandle_;
 

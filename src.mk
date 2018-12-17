@@ -422,7 +422,7 @@ MAIN_SOURCES =                                                          \
   utilities/write_batch_with_index/write_batch_with_index_test.cc       \
 
 JNI_NATIVE_SOURCES =   \
-  java/rocksjni/abstract_associative_merge_operator.cc        \
+  java/rocksjni/associative_merge_operator.cc                 \
   java/rocksjni/abstract_not_associative_merge_operator.cc    \
   java/rocksjni/backupenginejni.cc                            \
   java/rocksjni/backupablejni.cc                              \
