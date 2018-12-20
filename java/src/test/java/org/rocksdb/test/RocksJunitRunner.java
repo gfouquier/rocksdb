@@ -170,7 +170,7 @@ public class RocksJunitRunner {
       e.printStackTrace();
       System.exit(-2);
     } finally {
-      System.exit(0);
+      //System.exit(0);
     }
 
   }

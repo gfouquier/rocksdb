@@ -7,12 +7,13 @@
 #include <assert.h>
 #include <jni.h>
 #include <memory>
-#include <rocksjni/init.h>
+#include <rocksjni/portal.h>
 #include <string>
 
 #include "rocksdb/merge_operator.h"
 #include "rocksdb/slice.h"
-#include "rocksjni/portal.h"
+#include <rocksjni/portal.h>
+#include <rocksjni/init.h>
 #include "util/logging.h"
 #include "utilities/merge_operators.h"
 
@@ -41,6 +42,9 @@ namespace rocksdb {
                                       const Slice &rop, std::string *new_value,
                                       Logger */*logger*/) const {
                 JNIEnv *env = rocksdb::getEnv();
+                //jboolean attached;
+                //JNIEnv *env = rocksdb::JniUtil::getJniEnv(rocksdb::JVM,&attached);
+
                 if (env == NULL) return false;
                 jbyteArray jb0, jb1, jb2;
                 jbyte *buf0;
@@ -79,7 +83,7 @@ namespace rocksdb {
                         env->ReleaseByteArrayElements(jresult, (jbyte *) result, JNI_ABORT);
                     }
                     env->Throw(ex);
-
+                    //rocksdb::JniUtil::releaseJniEnv(rocksdb::JVM,attached);
                     return false;
                 } else {
                     int len = env->GetArrayLength(jresult) / sizeof(char);
@@ -87,8 +91,7 @@ namespace rocksdb {
                     new_value->clear();
                     new_value->assign(result, len);
                     env->ReleaseByteArrayElements(jresult, (jbyte *) result, JNI_ABORT);
-
-
+                    //rocksdb::JniUtil::releaseJniEnv(rocksdb::JVM,attached);
                     return true;
                 }
             }
@@ -99,6 +102,9 @@ namespace rocksdb {
                 if (!allowPartialMultiMerge) return false;
 
                 JNIEnv *env = rocksdb::getEnv();
+                //jboolean attached;
+                //JNIEnv *env = rocksdb::JniUtil::getJniEnv(rocksdb::JVM,&attached);
+
                 if (env == NULL) return false;
 
                 size_t size = operands.size();
@@ -134,7 +140,7 @@ namespace rocksdb {
                         env->ReleaseByteArrayElements(jresult, (jbyte *) result, JNI_ABORT);
                     }
                     env->Throw(ex);
-
+                    //rocksdb::JniUtil::releaseJniEnv(rocksdb::JVM,attached);
                     return false;
                 } else {
                     int len = env->GetArrayLength(jresult) / sizeof(char);
@@ -142,14 +148,15 @@ namespace rocksdb {
                     new_value->clear();
                     new_value->assign(result, len);
                     env->ReleaseByteArrayElements(jresult, (jbyte *) result, JNI_ABORT);
-
-
+                    //rocksdb::JniUtil::releaseJniEnv(rocksdb::JVM,attached);
                     return true;
                 }
             }
 
             virtual bool ShouldMerge(const std::vector <Slice> &operands) const {
                 if (!allowShouldMerge) return false;
+                //jboolean attached;
+                //JNIEnv *env = rocksdb::JniUtil::getJniEnv(rocksdb::JVM,&attached);
 
                 JNIEnv *env = rocksdb::getEnv();
                 if (env == NULL) return false;
@@ -182,8 +189,10 @@ namespace rocksdb {
 
                 if (ex) {
                     env->Throw(ex);
+                    //rocksdb::JniUtil::releaseJniEnv(rocksdb::JVM,attached);
                     return false;
                 } else {
+                    //rocksdb::JniUtil::releaseJniEnv(rocksdb::JVM, attached);
                     return (bool) jresult;
                 }
             }
@@ -191,6 +200,9 @@ namespace rocksdb {
             virtual bool FullMergeV2(const MergeOperationInput &merge_in,
                                      MergeOperationOutput *merge_out) const override {
                 JNIEnv *env = rocksdb::getEnv();
+                //jboolean attached;
+                //JNIEnv *env = rocksdb::JniUtil::getJniEnv(rocksdb::JVM,&attached);
+
                 if (env == NULL) return false;
                 jbyteArray jb0, jb1;
                 jbyte *buf0;
@@ -249,6 +261,7 @@ namespace rocksdb {
                         env->ReleaseByteArrayElements(jresult, (jbyte *) result, JNI_ABORT);
                     }
                     env->Throw(ex);
+                    //rocksdb::JniUtil::releaseJniEnv(rocksdb::JVM,attached);
                     return false;
                 } else {
                     int len = env->GetArrayLength(jresult) / sizeof(char);
@@ -256,7 +269,7 @@ namespace rocksdb {
                     merge_out->new_value.clear();
                     merge_out->new_value.assign(result, len);
                     env->ReleaseByteArrayElements(jresult, (jbyte *) result, JNI_ABORT);
-
+                    //rocksdb::JniUtil::releaseJniEnv(rocksdb::JVM,attached);
                     return true;
                 }
             }

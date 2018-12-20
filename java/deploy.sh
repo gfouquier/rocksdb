@@ -1,0 +1,1 @@
+mvn -f deploy.xml deploy:deploy-file -Dfile=target/rocksdbjni-5.18.0-linux64.jar -Djavadoc=target/rocksdbjni-5.18.0-javadoc.jar -Dsources=target/rocksdbjni-5.18.0-sources.jar -DgroupId=org.rocksdb -DartifactId=rocksdbjni -Dversion=5.18.0-pit-O3 -Dpackaging=jar -DrepositoryId=exensa_local -Durl=scpexe://maven.exensa.loc/var/http/maven-repository/releases

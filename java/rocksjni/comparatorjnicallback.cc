@@ -80,6 +80,7 @@ int BaseComparatorJniCallback::Compare(const Slice& a, const Slice& b) const {
       env->ExceptionDescribe(); // print out exception to stderr
     }
     releaseJniEnv(attached_thread);
+    std::cout << "BaseComparatorJniCallback::Compare::return0" << std::endl;
     return 0;
   }
 
@@ -91,6 +92,7 @@ int BaseComparatorJniCallback::Compare(const Slice& a, const Slice& b) const {
       env->ExceptionDescribe(); // print out exception to stderr
     }
     releaseJniEnv(attached_thread);
+    std::cout << "BaseComparatorJniCallback::Compare::return1" << std::endl;
     return 0;
   }
 
@@ -107,12 +109,13 @@ int BaseComparatorJniCallback::Compare(const Slice& a, const Slice& b) const {
   }
 
   releaseJniEnv(attached_thread);
-
   return result;
 }
 
 void BaseComparatorJniCallback::FindShortestSeparator(
     std::string* start, const Slice& limit) const {
+
+  std::cout << "BaseComparatorJniCallback::FindShortestSeparator" << std::endl;
   if (start == nullptr) {
     return;
   }
@@ -194,6 +197,7 @@ void BaseComparatorJniCallback::FindShortestSeparator(
 
 void BaseComparatorJniCallback::FindShortSuccessor(
     std::string* key) const {
+  std::cout << "BaseComparatorJniCallback::FindShortSuccessor" << std::endl;
   if (key == nullptr) {
     return;
   }

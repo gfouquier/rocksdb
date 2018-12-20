@@ -31,7 +31,7 @@ quoted_perl_command = $(subst ','\'',$(perl_command))
 # * DEBUG_LEVEL=2; this is the ultimate debug mode. It will compile rocksdb
 # without any optimizations. To compile with level 2, issue `make dbg`
 # * DEBUG_LEVEL=1; debug level 1 enables all assertions and debug code, but
-# compiles rocksdb with -O2 optimizations. this is the default debug level.
+# compiles rocksdb with -O3 optimizations. this is the default debug level.
 # `make all` or `make <binary_target>` compile RocksDB with debug level 1.
 # We use this debug level when developing RocksDB.
 # * DEBUG_LEVEL=0; this is the debug level we use for release. If you're
@@ -110,13 +110,13 @@ endif
 # Figure out optimize level.
 ifneq ($(DEBUG_LEVEL), 2)
 ifeq ($(LITE), 0)
-	OPT += -O2
+	OPT += -O3
 else
 	OPT += -Os
 endif
 endif
 
-# compile with -O2 if debug level is not 2
+# compile with -O3 if debug level is not 2
 ifneq ($(DEBUG_LEVEL), 2)
 OPT += -fno-omit-frame-pointer
 # Skip for archs that don't support -momit-leaf-frame-pointer
@@ -1730,7 +1730,7 @@ libbz2.a:
 		exit 1; \
 	fi
 	tar xvzf bzip2-$(BZIP2_VER).tar.gz
-	cd bzip2-$(BZIP2_VER) && $(MAKE) CFLAGS='-fPIC -O2 -g -D_FILE_OFFSET_BITS=64 ${EXTRA_CFLAGS}' AR='ar ${EXTRA_ARFLAGS}'
+	cd bzip2-$(BZIP2_VER) && $(MAKE) CFLAGS='-fPIC -O3 -g -D_FILE_OFFSET_BITS=64 ${EXTRA_CFLAGS}' AR='ar ${EXTRA_ARFLAGS}'
 	cp bzip2-$(BZIP2_VER)/libbz2.a .
 
 libsnappy.a:
@@ -1756,7 +1756,7 @@ liblz4.a:
 		exit 1; \
 	fi
 	tar xvzf lz4-$(LZ4_VER).tar.gz
-	cd lz4-$(LZ4_VER)/lib && $(MAKE) CFLAGS='-fPIC -O2 ${EXTRA_CFLAGS}' all
+	cd lz4-$(LZ4_VER)/lib && $(MAKE) CFLAGS='-fPIC -O3 ${EXTRA_CFLAGS}' all
 	cp lz4-$(LZ4_VER)/lib/liblz4.a .
 
 libzstd.a:
@@ -1769,7 +1769,7 @@ libzstd.a:
 		exit 1; \
 	fi
 	tar xvzf zstd-$(ZSTD_VER).tar.gz
-	cd zstd-$(ZSTD_VER)/lib && DESTDIR=. PREFIX= $(MAKE) CFLAGS='-fPIC -O2 ${EXTRA_CFLAGS}' install
+	cd zstd-$(ZSTD_VER)/lib && DESTDIR=. PREFIX= $(MAKE) CFLAGS='-fPIC -O3 ${EXTRA_CFLAGS}' install
 	cp zstd-$(ZSTD_VER)/lib/libzstd.a .
 
 # A version of each $(LIBOBJECTS) compiled with -fPIC and a fixed set of static compression libraries
@@ -1916,6 +1916,8 @@ jtest_run:
 jtest: rocksdbjava
 	cd java;$(MAKE) sample;$(MAKE) test;
 
+jtestmerge: rocksdbjava
+	cd java; $(MAKE) sample; $(MAKE) mergetest;
 jdb_bench:
 	cd java;$(MAKE) db_bench;
 

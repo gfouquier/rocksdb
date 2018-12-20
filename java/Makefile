@@ -1,5 +1,6 @@
 NATIVE_JAVA_CLASSES = org.rocksdb.AbstractCompactionFilter\
 	org.rocksdb.AbstractAssociativeMergeOperator\
+	org.rocksdb.AbstractAssociativeNioMergeOperator\
 	org.rocksdb.AbstractCompactionFilterFactory\
 	org.rocksdb.AbstractNotAssociativeMergeOperator\
 	org.rocksdb.AbstractSlice\
@@ -71,10 +72,10 @@ NATIVE_JAVA_CLASSES = org.rocksdb.AbstractCompactionFilter\
 	org.rocksdb.WriteOptions\
 	org.rocksdb.WriteBatchWithIndex\
 	org.rocksdb.WriteBufferManager\
-	org.rocksdb.WBWIRocksIterator
+	org.rocksdb.WBWIRocksIterator\
+	org.rocksdb.XORNioMergeOperator
 
 NATIVE_JAVA_TEST_CLASSES = org.rocksdb.RocksDBExceptionTest\
-		org.rocksdb.AbstractAssociativeMergeOperator\
     org.rocksdb.NativeComparatorWrapperTest.NativeStringComparatorWrapper\
     org.rocksdb.WriteBatchTest\
     org.rocksdb.WriteBatchTestInternalHelper
@@ -90,11 +91,12 @@ ifeq ($(PLATFORM), OS_MACOSX)
 ROCKSDB_JAR = rocksdbjni-$(ROCKSDB_MAJOR).$(ROCKSDB_MINOR).$(ROCKSDB_PATCH)-osx.jar
 endif
 
+JAVA_SUBTESTS = org.rocksdb.util.BytewiseComparatorTest
+JAVA_MERGE_TESTS = org.rocksdb.AbstractMergeOperatorTest
 JAVA_TESTS = org.rocksdb.AbstractMergeOperatorTest\
 	org.rocksdb.BackupableDBOptionsTest\
 	org.rocksdb.BackupEngineTest\
 	org.rocksdb.BlockBasedTableConfigTest\
-	org.rocksdb.util.BytewiseComparatorTest\
 	org.rocksdb.CheckPointTest\
 	org.rocksdb.ClockCacheTest\
 	org.rocksdb.ColumnFamilyOptionsTest\
@@ -105,11 +107,9 @@ JAVA_TESTS = org.rocksdb.AbstractMergeOperatorTest\
 	org.rocksdb.CompactionPriorityTest\
 	org.rocksdb.CompactionStopStyleTest\
 	org.rocksdb.ComparatorOptionsTest\
-	org.rocksdb.ComparatorTest\
 	org.rocksdb.CompressionOptionsTest\
 	org.rocksdb.CompressionTypesTest\
 	org.rocksdb.DBOptionsTest\
-	org.rocksdb.DirectComparatorTest\
 	org.rocksdb.DirectSliceTest\
 	org.rocksdb.EnvOptionsTest\
 	org.rocksdb.IngestExternalFileOptionsTest\
@@ -145,7 +145,6 @@ JAVA_TESTS = org.rocksdb.AbstractMergeOperatorTest\
 	org.rocksdb.SliceTest\
 	org.rocksdb.SnapshotTest\
 	org.rocksdb.SstFileManagerTest\
-	org.rocksdb.SstFileWriterTest\
 	org.rocksdb.TransactionTest\
 	org.rocksdb.TransactionDBTest\
 	org.rocksdb.TransactionOptionsTest\
@@ -271,8 +270,16 @@ java_test: java resolve_test_deps
 
 test: java java_test run_test
 
+mergetest: java java_test run_merge_test
+
 run_test:
-	java $(JAVA_ARGS) -Djava.library.path=target -cp "$(MAIN_CLASSES):$(TEST_CLASSES):$(JAVA_TESTCLASSPATH):target/*" org.rocksdb.test.RocksJunitRunner $(JAVA_TESTS)
+	java -ea $(JAVA_ARGS) -Djava.library.path=target -cp "$(MAIN_CLASSES):$(TEST_CLASSES):$(JAVA_TESTCLASSPATH):target/*" org.rocksdb.test.RocksJunitRunner $(JAVA_TESTS)
+
+run_merge_test:
+	java -ea $(JAVA_ARGS) -Djava.library.path=target -cp "$(MAIN_CLASSES):$(TEST_CLASSES):$(JAVA_TESTCLASSPATH):target/*" org.rocksdb.test.RocksJunitRunner $(JAVA_MERGE_TESTS)
+
+run_subtest:	
+	valgrind --trace-children=yes --smc-check=all --expensive-definedness-checks=yes java -Djava.compiler=NONE -ea $(JAVA_ARGS) -Djava.library.path=target -cp "$(MAIN_CLASSES):$(TEST_CLASSES):$(JAVA_TESTCLASSPATH):target/*" org.rocksdb.test.RocksJunitRunner $(JAVA_SUBTESTS)
 
 db_bench: java
 	$(AM_V_GEN)mkdir -p $(BENCHMARK_MAIN_CLASSES)

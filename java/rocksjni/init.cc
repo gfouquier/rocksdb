@@ -9,8 +9,9 @@
 #include <pthread.h>
 #include <rocksjni/init.h>
 #include <vector>
-
+#include "portal.h"
 #include "init.h"
+#include <util/thread_local.h>
 
 namespace rocksdb {
     JavaVM *JVM;
@@ -25,6 +26,10 @@ namespace rocksdb {
 #elif defined   JNI_VERSION_1_6
     jint jvmVersion=JNI_VERSION_1_6;
 #endif
+
+
+
+    bool closing = false;
 
     /**
      * Definitions for JNIInitializer
@@ -47,13 +52,14 @@ namespace rocksdb {
      * Global variables (!) FIXME : maybe in a JNIManager or something ?
      */
 
-    pthread_key_t CURRENT_ATTACHED_ENV;
+
+    //pthread_key_t CURRENT_ATTACHED_ENV;
 
     struct JNI_CONTEXT {
         JNIEnv *env;
         bool attached;
     };
-
+/*
     class ThreadExitHandler {
     public:
         int count = 0;
@@ -68,6 +74,7 @@ namespace rocksdb {
     };
 
     static thread_local ThreadExitHandler threadExitHandler;
+*/
 
     /**
      * Helper for throwing a java.lang.Error exception
@@ -89,9 +96,9 @@ namespace rocksdb {
         }
     }
 
-    static bool closing = false;
-
     void _detachCurrentThread(void *addr) {
+        if (rocksdb::closing)
+            return;
         std::cout<< "JNIFAST :: detaching threadid-"<< pthread_self() <<" "<<addr <<" "<<static_cast<JNI_CONTEXT*>(addr)<<"\n";
         JNI_CONTEXT *context;
         context = static_cast<JNI_CONTEXT *>(addr);
@@ -103,61 +110,60 @@ namespace rocksdb {
                 context->attached = false;
                 std::cout<< "JNIFAST :: detach execution"<<rocksdb::JVM<<" for threadid-" << pthread_self() << std::endl;;
                 assert(rocksdb::JVM != nullptr);
-                if (!rocksdb::closing)
+                if (rocksdb::JVM != nullptr)
                     rocksdb::JVM->DetachCurrentThread();
                 std::cout<< "JNIFAST :: detach execution finished"<<rocksdb::JVM<<" for threadid-" << pthread_self() << std::endl;;
             }
+
             delete context;
         }
     }
-    void _detachCurrentThread2(void *addr) {
-        std::cout<< "JNIFAST :: detaching from thread destructor " <<" for threadid-" << pthread_self() << std::endl;
-        _detachCurrentThread(addr);
-    }
 
+
+    static ThreadLocalPtr tlsContext(rocksdb::_detachCurrentThread);
 
     void detachCurrentThread() {
-        JNI_CONTEXT *context = static_cast<JNI_CONTEXT *>(pthread_getspecific(rocksdb::CURRENT_ATTACHED_ENV));
-        pthread_setspecific(rocksdb::CURRENT_ATTACHED_ENV, nullptr);
+        JNI_CONTEXT * context = reinterpret_cast<JNI_CONTEXT*>(tlsContext.Swap(nullptr));
         _detachCurrentThread(context);
     }
 
     void destroyJNIContext() {
-        std::cout << "JNIFAST :: destroy jni context" <<" for threadid-" << pthread_self() << std::endl;;
+        // std::cout << "JNIFAST :: destroy jni context" <<" for threadid-" << pthread_self() << std::endl;;
         rocksdb::closing = true;
+/*
         JNIEnv *env = rocksdb::getEnv();
         rocksdb::callback func;
         for (unsigned i = rocksdb::JNIInitializer::getInstance()->unloaders->size(); i-- > 0;) {
+            std::cout << "JNIFAST :: unloading " << i << " for threadid-" << pthread_self() << std::endl;;
             func = (*rocksdb::JNIInitializer::getInstance()->unloaders)[i];
             (*func)(env);
         }
-        rocksdb::JNIInitializer::getInstance()->unloaders->clear();
+        rocksdb::JNIInitializer::getInstance()->unloaders->clear(); */
+        // This is called from a Java thread, no need to detach
         //rocksdb::detachCurrentThread();
-
     }
 
     JNIEnv *getEnv() {
-        JNI_CONTEXT *context = (JNI_CONTEXT *) pthread_getspecific(rocksdb::CURRENT_ATTACHED_ENV);
-        threadExitHandler.count ++;
-        //std::cout << "get env: threadid " << pthread_self() << "\n";
+        JNI_CONTEXT *context = reinterpret_cast<JNI_CONTEXT *>(tlsContext.Get());
         JNIEnv *env;
         if (context == NULL) {
             int getEnvStat = rocksdb::JVM->GetEnv((void **) &env, rocksdb::jvmVersion);
             if (env == nullptr) {
-                std::cout << "JNIFAST :: JVM->GetEnv returned a NULL env, needs to attach first" <<" for threadid-" << pthread_self() << std::endl;;
+                // std::cout << "JNIFAST :: JVM->GetEnv returned a NULL env, needs to attach first" <<" for threadid-" << pthread_self() << std::endl;;
             }
             if (getEnvStat == JNI_EDETACHED) {
                 // expensive operation : do not detach for every invocation
-                if (rocksdb::JVM->AttachCurrentThread((void **) &env, NULL) != JNI_OK) {
+                if (rocksdb::JVM->AttachCurrentThreadAsDaemon((void **) &env, NULL) != JNI_OK) {
                     rocksdb::throwJavaLangError(env, "JNIFAST :: unable to attach JNIEnv");
                     return nullptr;
                 } else {
                     rocksdb::catchAndLog(env);
                     context = new JNI_CONTEXT();
-                    std::cout << "JNIFAST :: attached" << context <<" for threadid-" << pthread_self() << std::endl;
+                    //std::cout << "JNIFAST :: attached" << context <<" for threadid-" << pthread_self() << std::endl;
                     context->attached = true;
                     context->env = env;
-                    pthread_setspecific(rocksdb::CURRENT_ATTACHED_ENV, context);
+                    tlsContext.Swap(reinterpret_cast<void*>(context));
+                    //pthread_setspecific(rocksdb::CURRENT_ATTACHED_ENV, context);
                     // atexit([] { detach_current_thread(NULL); });
                     //  std::cout << "4"<<context<< "\n";
                     return env;
@@ -167,64 +173,56 @@ namespace rocksdb {
                 return NULL;
             } else {//already attached, but no JNI context
                 rocksdb::catchAndLog(env);
-                std::cout << "JNIFAST ::  already attached"<<" for threadid-" << pthread_self() << std::endl;;
+                //std::cout << "JNIFAST ::  already attached"<<" for threadid-" << pthread_self() << std::endl;;
                 context = new JNI_CONTEXT();
                 context->attached = true;
                 context->env = env;
-                pthread_setspecific(rocksdb::CURRENT_ATTACHED_ENV, context);
+                //pthread_setspecific(rocksdb::CURRENT_ATTACHED_ENV, context);
+                tlsContext.Swap(reinterpret_cast<void*>(context));
                 //   atexit([] { detach_current_thread(NULL); });
                 // std::cout << "4b "<<context<<"\n";
-                std::cout << "JNIFAST ::  threadid = " << pthread_self() << "\n";
+                //std::cout << "JNIFAST ::  threadid = " << pthread_self() << "\n";
                 return env;
             }
         } else {
             if (context->attached)
                 return context->env;
             else {
-                std::cout << "JNIFAST :: reattaching" << context <<" for threadid-" << pthread_self() << std::endl;
-                if (rocksdb::JVM->AttachCurrentThread((void **) &env, NULL) != JNI_OK) {
+                //std::cout << "JNIFAST :: reattaching" << context <<" for threadid-" << pthread_self() << std::endl;
+                if (rocksdb::JVM->AttachCurrentThreadAsDaemon((void **) &env, NULL) != JNI_OK) {
                     rocksdb::throwJavaLangError(env, "JNIFAST :: unable to attach JNIEnv");
                     return nullptr;
                 } else {
                     rocksdb::catchAndLog(env);
-                    std::cout << "JNIFAST :: reattached" << context <<" for threadid-" << pthread_self() << std::endl;
+                    //std::cout << "JNIFAST :: reattached" << context <<" for threadid-" << pthread_self() << std::endl;
                     context->attached = true;
                     return env;
                 }
             }
         }
     }
+
 }
 
 JNIEXPORT void JNICALL
 Java_org_rocksdb_util_Environment_detachCurrentThreadIfPossible(JNIEnv
 * /*env*/, jclass /*clazz*/) {
-rocksdb::detachCurrentThread();
+    rocksdb::detachCurrentThread();
 }
 
 jint JNI_OnLoad(JavaVM *vm, void * /*reserved*/) {
     rocksdb::JVM = vm;
-    pthread_key_create(&rocksdb::CURRENT_ATTACHED_ENV, rocksdb::_detachCurrentThread2);
     JNIEnv * env = rocksdb::getEnv();
-    std::cout << "########### nb loaders: " << rocksdb::JNIInitializer::getInstance()->loaders->size() << std::endl;
-    std::cout << "########### nb unloaders: " << rocksdb::JNIInitializer::getInstance()->unloaders->size() << std::endl;
-    for (auto const &func : *rocksdb::JNIInitializer::getInstance()->loaders) {
-        (*func)(env);
-        rocksdb::catchAndLog(env);
+    if (env != nullptr) {
+        //std::cout << "########### nb loaders: " << rocksdb::JNIInitializer::getInstance()->loaders->size() << std::endl;
+        //std::cout << "########### nb unloaders: " << rocksdb::JNIInitializer::getInstance()->unloaders->size() << std::endl;
+        for (auto const &func : *rocksdb::JNIInitializer::getInstance()->loaders) {
+            (*func)(env);
+            rocksdb::catchAndLog(env);
+        }
+        //std::cout << "########### Clearing and detaching " << std::endl;
+        rocksdb::JNIInitializer::getInstance()->loaders->clear();
+        rocksdb::detachCurrentThread();
     }
-    std::cout << "########### Clearing and detaching " << std::endl;
-    rocksdb::JNIInitializer::getInstance()->loaders->clear();
-    rocksdb::detachCurrentThread();
     return rocksdb::jvmVersion;
 }
-
-/*
- * fixed unload bug: this api is not called
- *
- * */
-
-void JNI_OnUnload(JavaVM * /*vm*/, void * /*reserved*/) {
-    std::cout << "JNIFAST ::  onUnload" << std::endl;
-    rocksdb::JVM = nullptr;
-}
-

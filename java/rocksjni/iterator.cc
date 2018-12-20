@@ -14,6 +14,8 @@
 #include "rocksdb/iterator.h"
 #include "rocksjni/portal.h"
 
+
+
 /*
  * Class:     org_rocksdb_RocksIterator
  * Method:    disposeInternal
@@ -104,6 +106,29 @@ void Java_org_rocksdb_RocksIterator_seek0(JNIEnv* env, jobject /*jobj*/,
 
 /*
  * Class:     org_rocksdb_RocksIterator
+ * Method:    seek1
+ * Signature: (JLjava/nio/ByteBuffer;I)V
+ */
+void Java_org_rocksdb_RocksIterator_seek1(JNIEnv* env, jobject /*jobj*/,
+                                          jlong handle,
+                                          jobject jtarget,
+                                          jint jtarget_len) {
+    void* target = env->GetDirectBufferAddress(jtarget);
+
+    if (target == nullptr) {
+        // exception thrown: OutOfMemoryError
+        return;
+    }
+
+    rocksdb::Slice target_slice(reinterpret_cast<char*>(target), jtarget_len);
+
+    auto* it = reinterpret_cast<rocksdb::Iterator*>(handle);
+    it->Seek(target_slice);
+}
+
+
+/*
+ * Class:     org_rocksdb_RocksIterator
  * Method:    seekForPrev0
  * Signature: (J[BI)V
  */
@@ -123,6 +148,27 @@ void Java_org_rocksdb_RocksIterator_seekForPrev0(JNIEnv* env, jobject /*jobj*/,
   it->SeekForPrev(target_slice);
 
   env->ReleaseByteArrayElements(jtarget, target, JNI_ABORT);
+}
+
+/*
+ * Class:     org_rocksdb_RocksIterator
+ * Method:    seekForPrev1
+ * Signature: (JLjava/nio/ByteBuffer;I)V
+ */
+void Java_org_rocksdb_RocksIterator_seekForPrev1(JNIEnv* env, jobject /*jobj*/,
+                                                 jlong handle,
+                                                 jobject jtarget,
+                                                 jint jtarget_len) {
+  void* target = env->GetDirectBufferAddress(jtarget);
+  if (target == nullptr) {
+    // exception thrown: OutOfMemoryError
+    return;
+  }
+
+  rocksdb::Slice target_slice(reinterpret_cast<char*>(target), jtarget_len);
+
+  auto* it = reinterpret_cast<rocksdb::Iterator*>(handle);
+  it->SeekForPrev(target_slice);
 }
 
 /*
@@ -182,5 +228,45 @@ jbyteArray Java_org_rocksdb_RocksIterator_value0(JNIEnv* env, jobject /*jobj*/,
   env->SetByteArrayRegion(
       jkeyValue, 0, static_cast<jsize>(value_slice.size()),
       const_cast<jbyte*>(reinterpret_cast<const jbyte*>(value_slice.data())));
+  return jkeyValue;
+}
+
+/*
+ * Class:     org_rocksdb_RocksIterator
+ * Method:    key1
+ * Signature: (J)Ljava.nio.ByteBuffer;
+ */
+jobject Java_org_rocksdb_RocksIterator_key1(JNIEnv* env, jobject /*jobj*/,
+                                               jlong handle) {
+  auto* it = reinterpret_cast<rocksdb::Iterator*>(handle);
+  rocksdb::Slice key_slice = it->key();
+
+  jobject jkey = env->NewDirectByteBuffer(const_cast<void*>(reinterpret_cast<const void*>(key_slice.data())),
+    static_cast<jlong>(key_slice.size()));
+  if (jkey == nullptr) {
+    // exception thrown: OutOfMemoryError
+    return nullptr;
+  }
+
+  return jkey;
+}
+
+/*
+ * Class:     org_rocksdb_RocksIterator
+ * Method:    value1
+ * Signature: (J)Ljava.nio.ByteBuffer;
+ */
+jobject Java_org_rocksdb_RocksIterator_value1(JNIEnv* env, jobject /*jobj*/,
+                                                 jlong handle) {
+  auto* it = reinterpret_cast<rocksdb::Iterator*>(handle);
+  rocksdb::Slice value_slice = it->value();
+
+  jobject jkeyValue = env->NewDirectByteBuffer(const_cast<void*>(reinterpret_cast<const void*>(value_slice.data())),
+    static_cast<jlong>(value_slice.size()));
+  if (jkeyValue == nullptr) {
+    // exception thrown: OutOfMemoryError
+    return nullptr;
+  }
+
   return jkeyValue;
 }

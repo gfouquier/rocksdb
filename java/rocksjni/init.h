@@ -44,6 +44,7 @@ static void function_name()
 namespace rocksdb {
 	extern JavaVM *JVM;
 	extern jint jvmVersion;
+    extern bool closing;
 
     typedef void (*callback)(JNIEnv *);
 
@@ -70,6 +71,7 @@ namespace rocksdb {
     void catchAndLog(JNIEnv *env);
 
     void detachCurrentThread();
+
 	void destroyJNIContext();
 }
 #endif //ROCKSDB_INIT_H

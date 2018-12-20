@@ -8,8 +8,17 @@
 #include <iostream>
 #include <jni.h>
 #include <memory>
+#include <rocksjni/portal.h>
 #include <rocksjni/init.h>
 #include <string>
+#include <chrono>
+
+
+typedef std::chrono::high_resolution_clock  hires_clock;
+typedef hires_clock::duration duration;
+typedef std::chrono::nanoseconds nanoseconds;
+typedef std::chrono::milliseconds milliseconds;
+typedef std::chrono::seconds seconds;
 
 #include "rocksdb/merge_operator.h"
 #include "rocksdb/slice.h"
@@ -34,7 +43,10 @@ namespace rocksdb {
                                const Slice &value,
                                std::string *new_value,
                                Logger */*logger*/) const override {
+                if (rocksdb::closing)
+                    return false;
                 JNIEnv *env = rocksdb::getEnv();
+
                 if (env == NULL)
                     return false;
 
@@ -64,35 +76,37 @@ namespace rocksdb {
                 env->SetByteArrayRegion(jb2, 0, s2, buf2);
 
                 jobject rtobject = env->NewObject(rtClass, rtConstructor);
+
                 jbyteArray jresult = (jbyteArray) env->CallObjectMethod(obj,
                                                                         rocksdb::JNIAbstractAssociativeMergeOperator::method,
                                                                         jb0, jb1, jb2, rtobject);
+
                 jthrowable ex = env->ExceptionOccurred();
-                rocksdb::catchAndLog(env);
                 env->DeleteLocalRef(jb0);
-                rocksdb::catchAndLog(env);
                 if (jb1 != NULL)
                     env->DeleteLocalRef(jb1);
                 env->DeleteLocalRef(jb2);
-                rocksdb::catchAndLog(env);
                 jboolean rtr = env->GetBooleanField(rtobject, rtField);
                 env->DeleteLocalRef(rtobject);
-
+                bool returnValue = false;
                 if (ex) {
                     if (jresult != nullptr) {
                         char *result = (char *) env->GetByteArrayElements(jresult, 0);
                         env->ReleaseByteArrayElements(jresult, (jbyte *) result, rtr ? JNI_COMMIT : JNI_ABORT);
+                        env->DeleteLocalRef(jresult);
                     }
                     env->Throw(ex);
-                    return false;
+                    returnValue = false;
                 } else {
                     int len = env->GetArrayLength(jresult) / sizeof(char);
-                    char *result = (char *) env->GetByteArrayElements(jresult, 0);
                     new_value->clear();
+                    char *result = (char *) env->GetPrimitiveArrayCritical(jresult, 0);
                     new_value->assign(result, len);
-                    env->ReleaseByteArrayElements(jresult, (jbyte *) result, rtr ? JNI_COMMIT : JNI_ABORT);
-                    return true;
+                    env->ReleasePrimitiveArrayCritical(jresult, (jbyte*) result, rtr ? JNI_COMMIT : JNI_ABORT);
+                    env->DeleteLocalRef(jresult);
+                    returnValue = true;
                 }
+                return returnValue;
             }
 
             virtual const char *Name() const override {

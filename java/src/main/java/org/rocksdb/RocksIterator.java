@@ -5,6 +5,8 @@
 
 package org.rocksdb;
 
+import java.nio.ByteBuffer;
+
 /**
  * <p>An iterator that yields a sequence of key/value pairs from a source.
  * Multiple implementations are provided by this library.
@@ -50,6 +52,34 @@ public class RocksIterator extends AbstractRocksIterator<RocksDB> {
     return value0(nativeHandle_);
   }
 
+
+  /**
+   * <p>Return the key for the current entry.  The underlying storage for
+   * the returned ByteBuffer is valid only until the next modification of
+   * the iterator.</p>
+   *
+   * <p>REQUIRES: {@link #isValid()}</p>
+   *
+   * @return key for the current entry.
+   */
+  public ByteBuffer keyAsByteBuffer() {
+    assert(isOwningHandle());
+    return key1(nativeHandle_);
+  }
+
+  /**
+   * <p>Return the value for the current entry.  The underlying storage for
+   * the returned ByteBuffer is valid only until the next modification of
+   * the iterator.</p>
+   *
+   * <p>REQUIRES: !AtEnd() &amp;&amp; !AtStart()</p>
+   * @return value for the current entry.
+   */
+  public ByteBuffer valueAsByteBuffer() {
+    assert(isOwningHandle());
+    return value1(nativeHandle_);
+  }
+
   @Override protected final native void disposeInternal(final long handle);
   @Override final native boolean isValid0(long handle);
   @Override final native void seekToFirst0(long handle);
@@ -57,9 +87,13 @@ public class RocksIterator extends AbstractRocksIterator<RocksDB> {
   @Override final native void next0(long handle);
   @Override final native void prev0(long handle);
   @Override final native void seek0(long handle, byte[] target, int targetLen);
+  @Override final native void seek1(long handle, ByteBuffer target, int targetLen);
   @Override final native void seekForPrev0(long handle, byte[] target, int targetLen);
+  @Override final native void seekForPrev1(long handle, ByteBuffer target, int targetLen);
   @Override final native void status0(long handle) throws RocksDBException;
 
   private native byte[] key0(long handle);
   private native byte[] value0(long handle);
+  private native ByteBuffer key1(long handle);
+  private native ByteBuffer value1(long handle);
 }

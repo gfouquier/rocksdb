@@ -32,6 +32,7 @@ public class RocksDB extends RocksObject {
       = new AtomicReference<>(LibraryState.NOT_LOADED);
 
   static {
+
     Runtime.getRuntime().addShutdownHook(new Thread(new Runnable(){
       @Override
       public void run() {

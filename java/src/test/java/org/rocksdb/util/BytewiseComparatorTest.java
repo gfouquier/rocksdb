@@ -8,8 +8,10 @@ package org.rocksdb.util;
 import org.junit.Test;
 import org.rocksdb.*;
 import org.rocksdb.Comparator;
+import sun.reflect.generics.reflectiveObjects.NotImplementedException;
 
 import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
@@ -214,7 +216,7 @@ public class BytewiseComparatorTest {
       final int num_trigger_flush) throws RocksDBException {
 
     final TreeMap<String, String> map = new TreeMap<>(javaComparator);
-
+    System.out.println("DEBUG : Start random iteration test : Prepare");
     for (int i = 0; i < num_writes; i++) {
       if (num_trigger_flush > 0 && i != 0 && i % num_trigger_flush == 0) {
         db.flush(new FlushOptions());
@@ -241,7 +243,7 @@ public class BytewiseComparatorTest {
           fail("Should not be able to generate random outside range 1..2");
       }
     }
-
+    System.out.println("DEBUG : Start random iteration test : Do the walk");
     try(final RocksIterator iter = db.newIterator(new ReadOptions())) {
       final KVIter<String, String> result_iter = new KVIter(map);
 
@@ -254,6 +256,7 @@ public class BytewiseComparatorTest {
         switch (type) {
           case 0:
             // Seek to First
+            System.out.println("DEBUG : Start random iteration test : Seek first");
             iter.seekToFirst();
             result_iter.seekToFirst();
             break;
@@ -264,6 +267,7 @@ public class BytewiseComparatorTest {
             break;
           case 2: {
             // Seek to random (existing or non-existing) key
+            System.out.println("DEBUG : Start random iteration test : Seek random");
             final int key_idx = rnd.nextInt(interleaving_strings.size());
             final String key = interleaving_strings.get(key_idx);
             iter.seek(bytes(key));
@@ -272,6 +276,7 @@ public class BytewiseComparatorTest {
           }
           case 3: {
             // SeekForPrev to random (existing or non-existing) key
+            System.out.println("DEBUG : Start random iteration test : SeekPrev random");
             final int key_idx = rnd.nextInt(interleaving_strings.size());
             final String key = interleaving_strings.get(key_idx);
             iter.seekForPrev(bytes(key));
@@ -280,6 +285,7 @@ public class BytewiseComparatorTest {
           }
           case 4:
             // Next
+            System.out.println("DEBUG : Start random iteration test : Seek next");
             if (is_valid) {
               iter.next();
               result_iter.next();
@@ -289,6 +295,7 @@ public class BytewiseComparatorTest {
             break;
           case 5:
             // Prev
+            System.out.println("DEBUG : Start random iteration test : Seek prev");
             if (is_valid) {
               iter.prev();
               result_iter.prev();
@@ -298,6 +305,7 @@ public class BytewiseComparatorTest {
             break;
           default: {
             assert (type == 6);
+            System.out.println("DEBUG : Start random iteration test : Get");
             final int key_idx = rnd.nextInt(source_strings.size());
             final String key = source_strings.get(key_idx);
             final byte[] result = db.get(new ReadOptions(), bytes(key));
@@ -451,6 +459,17 @@ public class BytewiseComparatorTest {
         }
       }
     }
+
+    @Override
+    public void seek(ByteBuffer target) {
+      throw  new NotImplementedException();
+    }
+
+    @Override
+    public void seekForPrev(ByteBuffer target) {
+      throw  new NotImplementedException();
+    }
+
 
     /**
      * Is `a` a prefix of `b`

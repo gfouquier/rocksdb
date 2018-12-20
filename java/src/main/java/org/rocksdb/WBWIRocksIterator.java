@@ -5,6 +5,8 @@
 
 package org.rocksdb;
 
+import java.nio.ByteBuffer;
+
 public class WBWIRocksIterator
     extends AbstractRocksIterator<WriteBatchWithIndex> {
   private final WriteEntry entry = new WriteEntry();
@@ -46,6 +48,8 @@ public class WBWIRocksIterator
   @Override final native void prev0(long handle);
   @Override final native void seek0(long handle, byte[] target, int targetLen);
   @Override final native void seekForPrev0(long handle, byte[] target, int targetLen);
+  @Override final native void seek1(long handle, ByteBuffer target, int targetLen);
+  @Override final native void seekForPrev1(long handle, ByteBuffer target, int targetLen);
   @Override final native void status0(long handle) throws RocksDBException;
 
   private native long[] entry1(final long handle);

@@ -4230,14 +4230,47 @@ class JniUtil {
      * @return A pointer to the JNIEnv or nullptr if a fatal error
      *     occurs and the JNIEnv cannot be retrieved
      */
-    static JNIEnv* getJniEnv(JavaVM* jvm, jboolean* attached) {
-      assert(jvm != nullptr);
+
+    static JNIEnv* getJniEnv(JavaVM* , jboolean* attached) {
+      //assert(jvm != nullptr);
 
       JNIEnv* env = rocksdb::getEnv();
       *attached = JNI_FALSE;
       return env;
     }
+/*
+    static JNIEnv* getJniEnv(JavaVM* jvm, jboolean* attached) {
+      assert(jvm != nullptr);
 
+      JNIEnv *env;
+      const jint env_rs = jvm->GetEnv(reinterpret_cast<void**>(&env),
+          JNI_VERSION_1_2);
+
+      if(env_rs == JNI_OK) {
+        // current thread is already attached, return the JNIEnv
+        *attached = JNI_FALSE;
+        return env;
+      } else if(env_rs == JNI_EDETACHED) {
+        // current thread is not attached, attempt to attach
+        const jint rs_attach = jvm->AttachCurrentThread(reinterpret_cast<void**>(&env), NULL);
+        if(rs_attach == JNI_OK) {
+          *attached = JNI_TRUE;
+          return env;
+        } else {
+          // error, could not attach the thread
+          std::cerr << "JniUtil::getJinEnv - Fatal: could not attach current thread to JVM!" << std::endl;
+          return nullptr;
+        }
+      } else if(env_rs == JNI_EVERSION) {
+        // error, JDK does not support JNI_VERSION_1_2+
+        std::cerr << "JniUtil::getJinEnv - Fatal: JDK does not support JNI_VERSION_1_2" << std::endl;
+        return nullptr;
+      } else {
+        std::cerr << "JniUtil::getJinEnv - Fatal: Unknown error: env_rs=" << env_rs << std::endl;
+        return nullptr;
+      }
+    }
+*/
     /**
      * Counterpart to {@link JniUtil::getJniEnv(JavaVM*, jboolean*)}
      *
@@ -4637,17 +4670,21 @@ class JniUtil {
         JNIEnv* env, jobject /*jobj*/,
         jbyteArray jkey, jint jkey_len,
         jbyteArray jvalue, jint jvalue_len) {
-      jbyte* key = env->GetByteArrayElements(jkey, nullptr);
+      //jbyte* key = env->GetByteArrayElements(jkey, nullptr);
+      jbyte* key = static_cast<jbyte*>(env->GetPrimitiveArrayCritical(jkey, nullptr));
       if(env->ExceptionCheck()) {
         // exception thrown: OutOfMemoryError
         return nullptr;
       }
 
-      jbyte* value = env->GetByteArrayElements(jvalue, nullptr);
+      //jbyte* value = env->GetByteArrayElements(jvalue, nullptr);
+      jbyte* value = static_cast<jbyte*>(env->GetPrimitiveArrayCritical(jvalue, nullptr));
       if(env->ExceptionCheck()) {
         // exception thrown: OutOfMemoryError
         if(key != nullptr) {
-          env->ReleaseByteArrayElements(jkey, key, JNI_ABORT);
+
+          //env->ReleaseByteArrayElements(jkey, key, JNI_ABORT);
+          env->ReleasePrimitiveArrayCritical(jkey, key, JNI_ABORT);
         }
         return nullptr;
       }
@@ -4659,10 +4696,12 @@ class JniUtil {
       auto status = op(key_slice, value_slice);
 
       if(value != nullptr) {
-        env->ReleaseByteArrayElements(jvalue, value, JNI_ABORT);
+        //env->ReleaseByteArrayElements(jvalue, value, JNI_ABORT);
+        env->ReleasePrimitiveArrayCritical(jvalue, value, JNI_ABORT);
       }
       if(key != nullptr) {
-        env->ReleaseByteArrayElements(jkey, key, JNI_ABORT);
+        //env->ReleaseByteArrayElements(jkey, key, JNI_ABORT);
+        env->ReleasePrimitiveArrayCritical(jkey, key, JNI_ABORT);
       }
 
       return std::unique_ptr<rocksdb::Status>(new rocksdb::Status(status));
