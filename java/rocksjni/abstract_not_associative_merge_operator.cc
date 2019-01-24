@@ -315,7 +315,7 @@ namespace rocksdb {
 
             if (JNIAbstractNotAssociativeMergeOperator::full_merge == 0)
                 rocksdb::throwJavaLangError(env, "unable to find method fullMerge");
-            std::cout << "ID for full_merge is " << JNIAbstractNotAssociativeMergeOperator::full_merge << std::endl;
+
             if (JNIAbstractNotAssociativeMergeOperator::multi_merge == 0)
                 rocksdb::throwJavaLangError(env, "unable to find method partialMultiMerge");
 

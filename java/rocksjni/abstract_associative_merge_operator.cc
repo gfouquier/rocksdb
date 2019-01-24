@@ -43,8 +43,6 @@ namespace rocksdb {
                                const Slice &value,
                                std::string *new_value,
                                Logger */*logger*/) const override {
-                if (rocksdb::closing)
-                    return false;
                 JNIEnv *env = rocksdb::getEnv();
 
                 if (env == NULL)

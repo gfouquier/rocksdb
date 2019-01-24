@@ -99,20 +99,20 @@ namespace rocksdb {
     void _detachCurrentThread(void *addr) {
         if (rocksdb::closing)
             return;
-        std::cout<< "JNIFAST :: detaching threadid-"<< pthread_self() <<" "<<addr <<" "<<static_cast<JNI_CONTEXT*>(addr)<<"\n";
+        //std::cout<< "JNIFAST :: detaching threadid-"<< pthread_self() <<" "<<addr <<" "<<static_cast<JNI_CONTEXT*>(addr)<<"\n";
         JNI_CONTEXT *context;
         context = static_cast<JNI_CONTEXT *>(addr);
-        std::cout<< "JNIFAST :: context="<< context<<" for threadid-" << pthread_self() << std::endl;
+        //std::cout<< "JNIFAST :: context="<< context<<" for threadid-" << pthread_self() << std::endl;
 
         if (context != nullptr) {
-            std::cout<< "JNIFAST :: detaching "<<context<<" for threadid-" << pthread_self() << std::endl;
+            //std::cout<< "JNIFAST :: detaching "<<context<<" for threadid-" << pthread_self() << std::endl;
             if (context->attached) {
                 context->attached = false;
-                std::cout<< "JNIFAST :: detach execution"<<rocksdb::JVM<<" for threadid-" << pthread_self() << std::endl;;
+                //std::cout<< "JNIFAST :: detach execution"<<rocksdb::JVM<<" for threadid-" << pthread_self() << std::endl;;
                 assert(rocksdb::JVM != nullptr);
                 if (rocksdb::JVM != nullptr)
                     rocksdb::JVM->DetachCurrentThread();
-                std::cout<< "JNIFAST :: detach execution finished"<<rocksdb::JVM<<" for threadid-" << pthread_self() << std::endl;;
+                //std::cout<< "JNIFAST :: detach execution finished"<<rocksdb::JVM<<" for threadid-" << pthread_self() << std::endl;;
             }
 
             delete context;

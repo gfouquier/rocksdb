@@ -528,7 +528,7 @@ if test -z "$PORTABLE"; then
   elif [ "$TARGET_OS" == "IOS" ]; then
     COMMON_FLAGS="$COMMON_FLAGS"
   elif [ "$TARGET_OS" != "AIX" ] && [ "$TARGET_OS" != "SunOS" ]; then
-    COMMON_FLAGS="$COMMON_FLAGS -march=native "
+    COMMON_FLAGS="$COMMON_FLAGS -march=ivybridge "
   elif test "$USE_SSE"; then
     COMMON_FLAGS="$COMMON_FLAGS -msse4.2 -mpclmul"
   fi
